@@ -11,12 +11,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/workflows")
 @RequiredArgsConstructor
@@ -37,7 +39,8 @@ public class WorkflowController {
     )
     public Mono<ResponseEntity<Map<String, String>>> executeWorkflow(@RequestBody WorkflowRequest request) {
         return engine.triggerWorkflow(request)
-                .map(id -> ResponseEntity.status(HttpStatus.ACCEPTED).body(Map.of("executionId", id)));
+                .map(id -> ResponseEntity.status(HttpStatus.ACCEPTED).body(Map.of("executionId", id)))
+                .doOnSuccess(res -> log.info("Successfully accepted request and dispatched workflow execution engine chain."));
     }
 
     @GetMapping("/executions/{id}/progress")
@@ -51,6 +54,7 @@ public class WorkflowController {
     )
     public Mono<ProgressResponse> getProgress(
             @PathVariable @Parameter(description = "Unique workflow execution UUID identifier") String id) {
+        log.info("Incoming monitoring progress request received for telemetry ID: [{}]", id);
         return engine.getProgress(id);
     }
 
@@ -65,6 +69,7 @@ public class WorkflowController {
     )
     public Mono<ExecutionHistoryResponse> getHistory(
             @PathVariable @Parameter(description = "Unique workflow execution UUID identifier") String id) {
+        log.info("Incoming transaction audit history log request received for trace ID: [{}]", id);
         return engine.getHistory(id);
     }
 }
